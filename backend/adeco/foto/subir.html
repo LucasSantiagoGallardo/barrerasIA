@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Subir archivo desde celular</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+    h2 {
+      color: #333;
+    }
+    label {
+      font-weight: bold;
+    }
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #999;
+    }
+  </style>
+</head>
+<body>
+  <h2>Subir archivo</h2>
+  <form id="uploadForm">
+    <input type="hidden" name="proveedor_id" id="proveedor_id" value="">
+    <input type="hidden" name="tipo" id="tipo" value="">
+    <label for="archivo">Seleccionar o tomar foto:</label><br/>
+    <input type="file" name="archivo" accept="image/*,.pdf" capture="environment" required/><br/><br/>
+    <button type="submit">Subir</button>
+  </form>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    document.getElementById('proveedor_id').value = urlParams.get('proveedor_id') || '';
+    document.getElementById('tipo').value = urlParams.get('tipo') || '';
+
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch('/adeco/foto/api/upload_desde_qr.php', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const resultText = await response.text();
+        try {
+          const result = JSON.parse(resultText);
+          if (result.success) {
+            Swal.fire({
+              icon: 'success',
+              title: '¡Éxito!',
+              text: 'Archivo subido con éxito.',
+              confirmButtonText: 'OK',
+            }).then(() => {
+              form.reset();
+            });
+          } else {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error al subir',
+              text: result.error || 'Hubo un problema inesperado.',
+            });
+          }
+        } catch (jsonError) {
+          console.error("Respuesta no JSON:", resultText);
+          Swal.fire({
+            icon: 'error',
+            title: 'Respuesta inválida',
+            text: 'No se pudo interpretar la respuesta del servidor.',
+          });
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de conexión',
+          text: 'No se pudo conectar con el servidor.',
+        });
+      }
+    });
+  </script>
+</body>
+</html>

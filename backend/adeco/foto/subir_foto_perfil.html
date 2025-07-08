@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Subir foto desde celular</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; }
+    button { padding: 10px 20px; background-color: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>Subir foto</h2>
+  <form id="uploadForm">
+    <input type="hidden" name="dni" id="dni" value="">
+    <label for="tipo">Tipo de foto:</label>
+    <select name="tipo" id="tipo" required>
+      <option value="fotoPerfilUrl">Foto de perfil</option>
+      <option value="fotoVehiculoUrl">Foto del vehículo</option>
+    </select><br/><br/>
+    <label for="archivo">Seleccionar o tomar foto:</label><br/>
+    <input type="file" name="archivo" accept="image/*" capture="environment" required/><br/><br/>
+    <button type="submit">Subir</button>
+  </form>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('dni').value = params.get('dni') || '';
+
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch('/adeco/api/upload_foto_perfil.php', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const text = await response.text();
+        const result = JSON.parse(text);
+        if (result.success) {
+          Swal.fire('Éxito', 'Foto cargada correctamente', 'success');
+          form.reset();
+        } else {
+          Swal.fire('Error', result.error || 'No se pudo cargar la foto', 'error');
+        }
+      } catch (err) {
+        Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
+      }
+    });
+  </script>
+</body>
+</html>

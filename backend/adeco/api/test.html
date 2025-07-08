@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Lista de Proveedores</title>
+</head>
+<body>
+  <h1>Proveedores</h1>
+  <ul id="lista"></ul>
+
+  <script>
+    fetch("http://localhost/adeco/api/get-providers.php")
+      .then(response => response.json())
+      .then(data => {
+        const lista = document.getElementById("lista");
+        data.forEach(prov => {
+          const li = document.createElement("li");
+          li.textContent = prov.company_name ?? "Sin nombre";
+          lista.appendChild(li);
+        });
+      })
+      .catch(error => console.error("Error al cargar proveedores:", error));
+  </script>
+</body>
+</html>
