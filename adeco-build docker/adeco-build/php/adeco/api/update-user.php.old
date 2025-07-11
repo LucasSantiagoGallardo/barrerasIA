@@ -1,0 +1,109 @@
+<?php
+header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Access-Control-Allow-Credentials: true");
+echo 'asd';
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
+header('Content-Type: application/json');
+require 'db.php';
+
+function calculateChecksum($key) {
+    // Convierte a mayúsculas
+    $key = strtoupper($key);
+
+    // Verifica que tenga 8 caracteres hexadecimales
+    if (strlen($key) !== 8 || !ctype_xdigit($key)) {
+        throw new Exception("La llave no es válida. Debe tener 8 caracteres hexadecimales.");
+    }
+
+    // Calcula el checksum
+    $checksum = 0;
+    for ($i = 0; $i < strlen($key); $i += 2) {
+        $segment = substr($key, $i, 2);
+        $checksum ^= hexdec($segment);
+    }
+
+    return $key . sprintf("%02X", $checksum); // Devuelve la llave con el checksum
+}
+
+// Leer datos de la solicitud
+$data = json_decode(file_get_contents('php://input'), true);
+$data['Active'] = 'True';
+$data['Id_Customer'] = 1;
+if (empty($data['Dni'])) {
+    echo json_encode(['error' => 'Dni is required']);
+    http_response_code(400);
+    exit;
+}
+
+try {
+    // Procesar Id_Key para agregar checksum
+    if (!empty($data['Id_Key'])) {
+        $data['key']=  $data['Id_Key'] ;
+        $data['Id_Key'] = calculateChecksum($data['Id_Key']);
+    }
+
+    // Actualizar en MySQL
+    $stmt = $conn->prepare("
+        UPDATE dni 
+        SET Name = :Name, 
+            Last_Name = :Last_Name, 
+            Telefono = :Telefono, 
+            Active = :Active, 
+            Id_Key = :Id_Key, 
+            Id_Customer = :Id_Customer
+        WHERE Dni = :Dni
+    ");
+    $stmt->execute([
+        ':Dni' => $data['Dni'],
+        ':Name' => $data['Name'],
+        ':Last_Name' => $data['Last_Name'],
+        ':Telefono' => $data['Telefono'] ?? '',
+        ':Active' => $data['Active'] ?? 'True',
+        ':Id_Key' => $data['key'] ?? '',
+        ':Id_Customer' => $data['Id_Customer'] ?? '1',
+        ':tag' => $data['Id_Tag'] ?? null, // Relación con empresa
+
+    ]);
+
+    // Preparar archivo .sdf
+    $sdfFilePath = "C:\\SCA_GEN\\SCA_GEN.sdf";
+    $sqlceCmdPath = "C:\\Users\\Administrator\\Downloads\\SqlCeCmd.exe";
+
+    $activeValue = ($data['Active'] === 'True' || $data['Active'] === true) ? 1 : 0;
+
+    $updateSdfCommand = sprintf(
+        '%s -d "Data Source=%s" -q "UPDATE Driver SET Name=\'%s\', Last_Name=\'%s\', Telefono=\'%s\', Active=%d, Id_Key=\'%s\', Id_Customer=%d WHERE Dni=%d"',
+        escapeshellcmd($sqlceCmdPath),
+        escapeshellarg($sdfFilePath),
+        addslashes($data['Name']),
+        addslashes($data['Last_Name']),
+        addslashes($data['Telefono']),
+        $activeValue,
+        addslashes($data['Id_Key']),
+        (int)$data['Id_Customer'],
+        (int)$data['Dni']
+    );
+
+    $output = [];
+    $returnVar = 0;
+    exec($updateSdfCommand, $output, $returnVar);
+
+    // Registrar la salida para depuración
+    file_put_contents('exec_log.txt', "Command: $updateSdfCommand\nOutput:\n" . implode("\n", $output) . "\nReturn Code: $returnVar\n", FILE_APPEND);
+
+    if ($returnVar !== 0) {
+        throw new Exception("Error updating .sdf file. Check exec_log.txt for details.");
+    }
+
+    echo json_encode(['message' => 'User updated successfully']);
+} catch (Exception $e) {
+    echo json_encode(['error' => 'Error updating user: ' . $e->getMessage()]);
+    http_response_code(500);
+}

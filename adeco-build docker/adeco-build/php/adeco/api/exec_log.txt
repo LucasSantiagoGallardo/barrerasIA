@@ -1,0 +1,65 @@
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "C:\SCA_GEN\SCA_GEN.sdf" -q "UPDATE Driver SET Name="3", Last_Name="3", Telefono="3", Active=1, Id_Key="aa221222", Id_Customer="1" WHERE Dni="3""
+Output:
+
+Return Code: 1
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "C:\SCA_GEN\SCA_GEN.sdf" -q "UPDATE Driver SET Name="LUCAS el serñor IT", Last_Name="GALLARDO", Telefono="3462 640606", Active=1, Id_Key="C3D33BA0", Id_Customer="1" WHERE Dni="36832355""
+Output:
+
+Return Code: 1
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "C:\SCA_GEN\SCA_GEN.sdf" -q "UPDATE Driver SET Name="LUCAS el serñor IT", Last_Name="GALLARsDO", Telefono="3462 640606", Active=1, Id_Key="C3D33BA0", Id_Customer="1" WHERE Dni="36832355""
+Output:
+
+Return Code: 1
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "C:\SCA_GEN\SCA_GEN.sdf" -q "UPDATE Driver SET Name='LUCAS el serñor IT', Last_Name='GAsadc', Telefono='3462 640606', Active=1, Id_Key='C3D33BA0', Id_Customer=1 WHERE Dni=36832355"
+Output:
+
+Return Code: 1
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "C:\SCA_GEN\SCA_GEN.sdf" -q "UPDATE Driver SET Name='LUCAS el serñor IT', Last_Name='GAcx', Telefono='3462 640606', Active=1, Id_Key='C3D33BA0', Id_Customer=1 WHERE Dni=36832355"
+Output:
+
+Return Code: 1
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "Data Source="C:\SCA_GEN\SCA_GEN.sdf"" -q "UPDATE Driver SET Name='LUCAS3ñor IT', Last_Name='GAcx32', Telefono='3462 640606', Active=1, Id_Key='C3D33BA0', Id_Customer=1 WHERE Dni=36832355"
+Output:
+
+(1 rows affected)
+Return Code: 0
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "Data Source="C:\SCA_GEN\SCA_GEN.sdf"" -q "UPDATE Driver SET Name='LUCAS3ñor IT', Last_Name='GAcx32', Telefono='3462 640602', Active=1, Id_Key='C3D33BA08B', Id_Customer=1 WHERE Dni=36832355"
+Output:
+
+(1 rows affected)
+Return Code: 0
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "Data Source="C:\SCA_GEN\SCA_GEN.sdf"" -q "UPDATE Driver SET Name='LUCAS3ñor IT', Last_Name='GAcx32', Telefono='3462 640602', Active=1, Id_Key='FBB3D8C353', Id_Customer=1 WHERE Dni=36832355"
+Output:
+
+(1 rows affected)
+Return Code: 0
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "Data Source="C:\SCA_GEN\SCA_GEN.sdf"" -q "UPDATE Driver SET Name='LUCAS3ñor IT', Last_Name='GAcx32', Telefono='3462 640602', Active=1, Id_Key='FBB3D8C353', Id_Customer=1 WHERE Dni=36832355"
+Output:
+
+(1 rows affected)
+Return Code: 0
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "Data Source="C:\SCA_GEN\SCA_GEN.sdf"" -q "UPDATE Driver SET Name='laura', Last_Name='perez', Telefono='12', Active=1, Id_Key='AB2121218A', Id_Customer=1 WHERE Dni=50100200"
+Output:
+
+(1 rows affected)
+Return Code: 0
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "Data Source="C:\SCA_GEN\SCA_GEN.sdf"" -q "UPDATE Driver SET Name='WALTER DAMIAN', Last_Name='ABRAHAM', Telefono='', Active=1, Id_Key='AB123456DB', Id_Customer=1 WHERE Dni=39313281"
+Output:
+
+(1 rows affected)
+Return Code: 0
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "Data Source="C:\SCA_GEN\SCA_GEN.sdf"" -q "UPDATE Driver SET Name='LUCAS3ñor IT', Last_Name='GAcx32', Telefono='3462 640602', Active=1, Id_Key='FBB3D8C353', Id_Customer=1 WHERE Dni=36832355"
+Output:
+
+(1 rows affected)
+Return Code: 0
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "Data Source="C:\SCA_GEN\SCA_GEN.sdf"" -q "UPDATE Driver SET Name='LUCAS3ñor IT', Last_Name='GAcx32', Telefono='3462 640602', Active=1, Id_Key='FBB3D8C353', Id_Customer=1 WHERE Dni=36832355"
+Output:
+
+(1 rows affected)
+Return Code: 0
+Command: C:^\Users^\Administrator^\Downloads^\SqlCeCmd.exe -d "Data Source="C:\SCA_GEN\SCA_GEN.sdf"" -q "UPDATE Driver SET Name='LUCAS3ñor IT', Last_Name='GAcx32', Telefono='3462 640602', Active=1, Id_Key='FBB3D8C353', Id_Customer=1 WHERE Dni=36832355"
+Output:
+
+(1 rows affected)
+Return Code: 0

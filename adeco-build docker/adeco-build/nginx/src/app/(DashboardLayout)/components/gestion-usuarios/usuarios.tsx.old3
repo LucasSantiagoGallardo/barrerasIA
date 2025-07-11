@@ -1,0 +1,575 @@
+'use client';
+import React, { useState, useEffect , useRef} from 'react';
+import Swal from 'sweetalert2';
+import IconButton from '@mui/material/IconButton';
+import MemoryIcon from '@mui/icons-material/Memory';
+import CircularProgress from '@mui/material/CircularProgress';
+
+
+
+import Link from 'next/link';
+import {
+  Box,
+  Button,
+  Grid,
+  Modal,
+  TextField,
+  Typography,
+  MenuItem,
+  Select,
+  InputLabel,
+  FormControl,
+  FormControlLabel,
+  Checkbox,
+  ButtonBase,
+} from '@mui/material';
+import { DataGrid, GridColDef } from '@mui/x-data-grid';
+
+interface User {
+  id: number;
+  Dni: string;
+  Name: string;
+  Last_Name: string;
+  Telefono: string;
+  Id_Key: string;
+  company_name: string;
+  Active: string; // Contiene "True" o "False"
+  licensePlate?: string; // Para la patente
+  Id_Tag: string;
+  tag: string;
+
+
+}
+
+
+
+const columns: GridColDef[] = [
+  { field: 'Dni', headerName: 'DNI', flex: 1 },
+  { field: 'Name', headerName: 'Nombre', flex: 1 },
+  { field: 'Last_Name', headerName: 'Apellido',flex: 1},
+  { field: 'Telefono', headerName: 'Teléfono',flex: 1},
+  { field: 'Id_Key', headerName: 'Llave', flex: 1 },
+  { field: 'company_name', headerName: 'Empresa',flex: 1 },
+  {field: 'patente', headerName: 'Patente', flex: 1},
+  { field: 'Active', headerName: 'Activo', flex: 1 },
+  { field: 'tag', headerName: 'Tag', flex: 1 },
+  
+  {
+    field: 'actions',
+    headerName: 'Acciones',
+    flex: 3,
+    renderCell: (params) => (
+      <Box display="flex" gap={1}>
+        <Button
+          size="small"
+          variant="outlined"
+          color="warning"
+          onClick={() => params.row.onDesag(params.row.Dni, params.row.company_name, params.row.tag)}
+        >
+          Revocar Tag
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => params.row.onEdit(params.row)}
+        >
+          Editar
+        </Button>
+        <Button
+          size="small"
+          color="error"
+          variant="outlined"
+          onClick={() => params.row.onDelete(params.row.Dni)}
+        >
+          Eliminar
+        </Button>
+        <Link href={`/detalles/${params.row.Dni}`} passHref>
+          <Button size="small" variant="contained" color="primary">
+            Detalles
+          </Button>
+        </Link>
+      </Box>
+    ),
+  },
+];
+
+const UserCRUD = () => {
+  const [leyendo, setLeyendo] = useState(false);
+
+  const [rows, setRows] = useState<User[]>([]);
+  const [filteredRows, setFilteredRows] = useState<User[]>([]);
+  const [providers, setProviders] = useState<{ id: number; company_name: string }[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [currentRow, setCurrentRow] = useState<Partial<User>>({});
+  const [isEditing, setIsEditing] = useState(false);
+  const previousTagRef = useRef<string>('');
+
+  const fetchRows = async () => {
+    const response = await fetch('http://localhost/adeco/api/users.php');
+    const data = await response.json();
+    const processedData = data.map((row: User) => ({
+      ...row,
+      onEdit: handleEdit,
+      onDelete: handleDelete,
+      onDesag: handleRevokeTag,
+    }));
+    setRows(processedData);
+    setFilteredRows(processedData);
+  };
+
+  const fetchProviders = async () => {
+    const response = await fetch('http://localhost/adeco/api/get-providers.php');
+    const data = await response.json();
+    setProviders(data);
+  };
+
+  useEffect(() => {
+    fetchRows();
+    fetchProviders();
+  }, []);
+
+  const handleRevokeTag = async (dni: string, custo: string,tag:string) => {
+    try {
+      const response = await fetch(`http://localhost/adeco/api/revoke-tag.php?dni=${dni}&custo=${custo}&tag=${tag}`, {
+        method: 'POST',
+      });
+  
+      if (response.ok) {
+        Swal.fire('Éxito', 'Tag revocado correctamente.', 'success');
+        fetchRows(); // Actualiza los datos después de la revocación
+      } else {
+        Swal.fire('Error', 'No se pudo revocar el tag.', 'error');
+      }
+    } catch (error) {
+      console.error('Error al revocar el tag:', error);
+      Swal.fire('Error', 'Ocurrió un error al revocar el tag.', 'error');
+    }
+  };
+
+  const handleEdit = (row: User) => {
+    previousTagRef.current = row.tag || ''; // ← guardar el original
+    setCurrentRow({
+      ...row,
+      isAllowed: row.Active.toLowerCase() === 'true',
+    });
+    setIsEditing(true);
+    setOpen(true);
+  };
+  
+
+  
+  
+  
+  const handleDelete = async (dni: string) => {
+    if (!window.confirm('¿Seguro que deseas eliminar este usuario?')) return;
+
+    await fetch(`http://localhost/adeco/api/delete-user.php?dni=${dni}`, {
+      method: 'DELETE',
+    });
+    fetchRows();
+  };
+
+
+  const checkAndUpsertTag = async (id_tag: string) => {
+    try {
+      const checkRes = await fetch(`http://localhost/adeco/api/check-tag.php?id_tag=${id_tag}`);
+      const exists = await checkRes.json();
+  
+      if (exists.found) {
+        // Si existe, actualizamos con los datos actuales del usuario
+        await fetch(`http://localhost/adeco/api/update-tag.php`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id_tag: currentRow.tag,
+            estado: currentRow.isAllowed ? 1 : 0,
+            dni: currentRow.Dni,
+            tipo: exists.tipo, // mantenemos el tipo original
+          }),
+        });
+      } else {
+        // Preguntar tipo de tag
+        const { value: tipo } = await Swal.fire({
+          title: '¿Qué tipo de tag es?',
+          input: 'select',
+          inputOptions: {
+            'llavero': 'Llavero',
+            'calcomania': 'Calcomanía',
+          },
+          inputPlaceholder: 'Selecciona un tipo',
+          showCancelButton: true,
+        });
+  
+        if (!tipo) throw new Error('No se seleccionó el tipo de tag');
+  
+        // Crear el tag
+        await fetch(`http://localhost/adeco/api/create-tag.php`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id_tag: currentRow.tag ,
+            dni: currentRow.Dni,
+            tipo: tipo,
+          }),
+        });
+      }
+    } catch (error) {
+      console.error('Error con el tag:', error);
+      throw error;
+    }
+  };
+  
+
+ 
+  const handleSave = async () => {
+    if (!currentRow.Dni || !currentRow.Name || !currentRow.Last_Name) {
+      Swal.fire('Campos incompletos', 'Por favor completa todos los campos obligatorios.', 'warning');
+      return;
+    }
+  
+    const payload = {
+      ...currentRow,
+      Active: currentRow.isAllowed ? 'True' : 'False',
+    };
+  
+    const url = isEditing
+      ? 'http://localhost/adeco/api/update-user.php'
+      : 'http://localhost/adeco/api/create-user.php';
+
+      if (currentRow.tag) {
+        await checkAndUpsertTag(currentRow.tag);
+      }
+  
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+  
+      const result = await response.json();
+  
+      if (response.ok) {
+        Swal.fire('Éxito', result.message || 'Usuario guardado con éxito.', 'success');
+        fetchRows();
+        setOpen(false);
+        setCurrentRow({});
+        setIsEditing(false);
+      } else {
+        throw new Error(result.error || 'Error desconocido');
+      }
+    } catch (error: any) {
+      Swal.fire('Error', error.message || 'Error al guardar el usuario.', 'error');
+    }
+  };
+  
+
+
+
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toLowerCase();
+    setSearchTerm(value);
+
+    const filtered = rows.filter((row) =>
+      (row.Dni?.toString() || '').toLowerCase().includes(value) ||
+      (row.Name || '').toLowerCase().includes(value) ||
+      (row.Last_Name || '').toLowerCase().includes(value) ||
+      (row.Id_Key || '').toLowerCase().includes(value) ||
+      (row.company_name || '').toLowerCase().includes(value) ||
+      (row.Active || '').toLowerCase().includes(value)||
+      (row.patente || '').toLowerCase().includes(value) ||
+      (row.Id_Tag || '').toLowerCase().includes(value)
+    );
+
+    setFilteredRows(filtered);
+  };
+
+  const toggleActiveFilter = () => {
+    setShowActiveOnly(!showActiveOnly);
+    if (!showActiveOnly) {
+      setFilteredRows(rows.filter((row) => row.Active.toLowerCase() === 'true'));
+    } else {
+      setFilteredRows(rows);
+    }
+  };
+
+  return (
+    <Box>
+      <Typography variant="h4" mb={2}>
+        Gestión de Usuarios
+      </Typography>
+      <Box display="flex" alignItems="center" gap={2} mb={2}>
+        <TextField
+          label="Buscar por DNI, Nombre, Apellido o Empresa"
+          fullWidth
+          value={searchTerm}
+          onChange={handleSearch}
+        />
+        <Button variant="contained" color="secondary" onClick={toggleActiveFilter}>
+          {showActiveOnly ? 'Mostrar Todos' : 'Mostrar Activos'}
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => {
+            setCurrentRow({ isAllowed: false, licensePlate: '' });
+            setIsEditing(false);
+            setOpen(true);
+          }}
+        >
+          Agregar Usuario
+        </Button>
+      </Box>
+      <Box style={{ width: '100%' }}>
+        <DataGrid
+          rows={filteredRows}
+          columns={columns}
+          paginationModel={{ pageSize: 15, page: 0 }}
+        />
+      </Box>
+      <Modal open={open} onClose={() => setOpen(false)}>
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+            p: 4,
+            width: '400px',       
+          }}
+        >
+          <Typography variant="h6" mb={2}>
+            {isEditing ? 'Editar Usuario' : 'Agregar Usuario'}
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="DNI" 
+                fullWidth
+                value={currentRow.Dni || ''}
+                onChange={(e) =>
+                  setCurrentRow({ ...currentRow, Dni: e.target.value })
+                }
+                disabled={isEditing}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Nombre"
+                fullWidth
+                value={currentRow.Name || ''}
+                onChange={(e) =>
+                  setCurrentRow({ ...currentRow, Name: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Apellido"
+                fullWidth
+                value={currentRow.Last_Name || ''}
+                onChange={(e) =>
+                  setCurrentRow({ ...currentRow, Last_Name: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Teléfono"
+                fullWidth
+                value={currentRow.Telefono || ''}
+                onChange={(e) =>
+                  setCurrentRow({ ...currentRow, Telefono: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={6} sm={6}>
+              <TextField
+                label="LLave"
+                fullWidth
+                value={currentRow.Id_Key || ''}
+                onChange={(e) =>
+                  setCurrentRow({ ...currentRow, Id_Key: e.target.value })
+                }
+              />
+            </Grid>
+   
+
+            <Grid item xs={6} sm={6} sx={{ display: 'flex', alignItems: 'center' }}>
+  <TextField
+    label="Tag"
+    fullWidth
+    value={currentRow.tag || ''}
+    onChange={async (e) => {
+      const newValue = e.target.value;
+      const originalTag = previousTagRef.current;
+
+      // Si no había un tag antes, permitir escribir libremente
+      if (originalTag === '') {
+        setCurrentRow((prev) => ({
+          ...prev,
+          tag: newValue,
+        }));
+        return;
+      }
+
+      // Si el usuario lo está borrando
+      if (newValue === '') {
+        try {
+          await fetch('http://localhost/adeco/api/update-tag.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id_tag: originalTag,
+              estado: 0,
+            }),
+          });
+          console.log('Tag desactivado automáticamente');
+          previousTagRef.current = '';
+        } catch (error) {
+          console.error('Error al desactivar el tag:', error);
+        }
+
+        setCurrentRow((prev) => ({
+          ...prev,
+          tag: '',
+        }));
+        return;
+      }
+
+      // Si había un tag y quiere cambiarlo manualmente → bloquear
+      if (originalTag !== '' && newValue !== originalTag) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se puede asignar un nuevo tag hasta que se devuelva el anterior',
+          confirmButtonColor: '#d33',
+          confirmButtonText: 'Entendido',
+        });
+        return;
+      }
+
+      // Si no hay conflicto, actualizar
+      setCurrentRow((prev) => ({
+        ...prev,
+        tag: newValue,
+      }));
+    }}
+    disabled={leyendo} // Desactiva el campo mientras lee
+  />
+  <IconButton
+    sx={{ ml: 1 }}
+    color="primary"
+    title="Leer desde antena"
+    onClick={async () => {
+      setLeyendo(true); // activa el spinner
+      try {
+        const res = await fetch('http://localhost:5000/leer-antenna');
+        const data = await res.json();
+        if (data && data.tag) {
+          setCurrentRow((prev) => ({
+            ...prev,
+            tag: data.tag,
+          }));
+          previousTagRef.current = data.tag;
+        } else {
+          await Swal.fire({
+            icon: 'warning',
+            title: 'No se detectó ningún tag',
+            text: 'Aproxime el llavero o tarjeta a la antena.',
+          });
+        }
+      } catch (error) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Error al leer desde la antena',
+          text: 'Verifique la conexión o la antena.',
+        });
+      }
+      setLeyendo(false); // vuelve a la normalidad
+    }}
+    disabled={leyendo} // desactiva el botón mientras lee
+  >
+    {leyendo ? <CircularProgress size={28} /> : <MemoryIcon fontSize="medium" />}
+  </IconButton>
+</Grid>
+
+
+
+
+
+            <Grid item xs={12}>
+
+
+            <FormControl fullWidth>
+  <InputLabel>Empresa</InputLabel>
+  <Select
+    value={currentRow.Id_Customer || ''}
+    onChange={(e) =>
+      setCurrentRow({
+        ...currentRow,
+        Id_Customer: e.target.value,
+        company_name: providers.find(p => p.id === Number(e.target.value))?.company_name || '',
+      })
+    }
+  >
+    {providers.map((provider) => (
+      <MenuItem key={provider.id} value={provider.id}>
+        {provider.company_name}
+      </MenuItem>
+    ))}
+  </Select>
+</FormControl>
+
+
+
+            </Grid>
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={currentRow.isAllowed || false}
+                    onChange={(e) =>
+                      setCurrentRow({ ...currentRow, isAllowed: e.target.checked })
+                    }
+                  />
+                }
+                label="Permitido"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Patente"
+                fullWidth
+                value={currentRow.patente || ''}
+                onChange={(e) =>
+                  setCurrentRow({ ...currentRow, patente: e.target.value })
+                }
+              />
+            </Grid>
+          </Grid>
+          <Box mt={2}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSave}
+              sx={{ mr: 2 }}
+            >
+              Guardar
+            </Button>
+            <Button variant="outlined" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+    </Box>
+  );
+};
+
+export default UserCRUD;

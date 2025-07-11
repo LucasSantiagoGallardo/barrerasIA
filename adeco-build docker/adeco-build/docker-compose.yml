@@ -1,0 +1,74 @@
+version: '3.9'
+
+services:
+  db:
+    image: mariadb:11
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: adeco
+      MYSQL_USER: adeco
+      MYSQL_PASSWORD: adeco
+    volumes:
+      - ./bd:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+
+  php:
+    image: php:8.2-apache
+    restart: always
+    volumes:
+      - ./php/adeco:/var/www/html
+    environment:
+      - MYSQL_HOST=db
+      - MYSQL_USER=adeco
+      - MYSQL_PASSWORD=adeco
+      - MYSQL_DATABASE=adeco
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+
+  phpmyadmin:
+    image: phpmyadmin:5
+    restart: always
+    environment:
+      - PMA_HOST=db
+      - PMA_USER=adeco
+      - PMA_PASSWORD=adeco
+      - PMA_ARBITRARY=1
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+
+  fastapi:
+    build:
+      context: ./phyton
+    container_name: adeco-fastapi
+    restart: always
+    volumes:
+      - ./phyton:/app
+    working_dir: /app
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8003", "--reload"]
+    ports:
+      - "8003:8003"
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./nginx
+    restart: always
+    volumes:
+      - ./nginx:/app
+    working_dir: /app
+    command: ["npm", "run", "dev"]
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - php
+      - fastapi
+
